@@ -7,14 +7,34 @@ def extract_frames(video_path, output_path_folder, output_prefix, fps):
     clip_length = clip.duration
     print(clip_length)
     for i in range(int(clip_length)//fps):
-        clip.save_frame(os.path.join(output_path_folder,f"{output_prefix}_{(i+1)*fps}.png"), (i+1)*fps)
+        clipTemp = clip.subclip(i*fps,i*fps+fps)
+        clipTemp.write_videofile(os.path.join(output_path_folder,f"{output_prefix}_{i*fps}.mp4"), audio_codec='aac')
 
+def findVideoFunc(folder_path):
+    fileNameList = []
+    # 遍历目录
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.mp4'):
+            fileNameList.append(filename)
+            print(filename)
+    return fileNameList
+
+# 原视频文件夹
 downloads_folder = os.path.join(os.path.expanduser('~'), 'Downloads/115download')
-video_path = os.path.join(downloads_folder, f"snis-576-2.mp4")
-output_path_folder = downloads_folder
-
-# video_path = 'your_video.mp4'  # 替换为你的视频文件路径
-
-output_prefix = 'screenshot'  # 输出文件的前缀
+# 每段长度（秒）
 fps = 3
-extract_frames(video_path, output_path_folder, output_prefix, fps)
+# 遍历文件夹，返回视频
+video_path_list = findVideoFunc(downloads_folder)
+
+for video_path_name in video_path_list:
+    # 创建输出文件夹
+    video_name = video_path_name.split(".")[0]
+    folder_name = video_name
+    path = downloads_folder + "/" + folder_name
+    os.makedirs(path, exist_ok=True)
+    output_path_folder = path
+    # 输出文件的前缀
+    output_prefix = video_name
+    # 输入文件
+    video_path = os.path.join(downloads_folder, video_path_name)
+    extract_frames(video_path, output_path_folder, output_prefix, fps)
