@@ -106,7 +106,7 @@ for video_path_name in video_path_list:
 
     # 输出视频
     clip_name = f"{output_prefix}.mp4"
-    clipFinal.write_videofile(clip_name, audio_codec='aac')
+    clipFinal.write_videofile(os.path.join(output_path_folder, clip_name), audio_codec='aac')
 
 
 
