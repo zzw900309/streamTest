@@ -1,18 +1,22 @@
-import copy
+'''
+- 将视频分割为时长为X秒的小段落，并根据平均音量排序；
+- 将top音量的小段视频进行拼接，组成一个完整视频；
+'''
+
 import os
 import math
 from pydub import AudioSegment
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 
 def extract_clips(video_path, clip_duration, interval):
+    # 加载视频
     clip = VideoFileClip(video_path)
     clip_length = clip.duration
     clipsTemp = []
     start_time = 0
     iCount = 0
 
-    # 确保间隔和片段时长是合理的
-    # if interval <= clip_duration and clip_duration > 0:
+    # 确保片段时长是合理的
     if clip_duration > 0:
         while start_time < clip_length:
             clipsTemp.append([iCount])
@@ -28,7 +32,6 @@ def extract_clips(video_path, clip_duration, interval):
             audioTemp = clip_to_save.audio
             audio_filename = f"temp_audio_{iCount}.mp3"
             audioTemp.write_audiofile(audio_filename)
-
             # 加载音频文件
             audio = AudioSegment.from_file(audio_filename, format="mp3")
             # 获取音频样本的数组
@@ -50,29 +53,70 @@ def extract_clips(video_path, clip_duration, interval):
 
     return clipsTemp
 
+def findVideoFunc(folder_path):
+    fileNameList = []
+    # 遍历目录
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.mp4'):
+            fileNameList.append(filename)
+            print(filename)
+    return fileNameList
 
 rankList = []
-rankTempList = []
-rankLeaveList = []
-
-# 视频文件夹路径 - Downloads
+# 设置视频目录文件夹路径
 downloads_folder = os.path.join(os.path.expanduser('~'), 'Downloads/115download')
-# 视频文件路径
-video_path = os.path.join(downloads_folder, f"snis-576-2.mp4")
-
+# 遍历文件夹，返回视频
+video_path_list = findVideoFunc(downloads_folder)
 # 截取片段的时长（秒）
-clip_duration_in_seconds = 6  # 2分钟
+clip_duration_in_seconds = 6
 # 截取片段的间隔（秒）
-interval_in_seconds = 6
+interval_in_seconds = clip_duration_in_seconds
 
-# 提取片段，计算平均音量
-clips = extract_clips(video_path, clip_duration_in_seconds, interval_in_seconds)
+for video_path_name in video_path_list:
+    # 创建输出文件夹
+    video_name = video_path_name.split(".")[0]
+    folder_name = video_name
+    path = downloads_folder + "/" + folder_name
+    os.makedirs(path, exist_ok=True)
+    output_path_folder = path
+    # 输出文件的前缀
+    output_prefix = video_name
+    # 输入文件
+    video_path = os.path.join(downloads_folder, video_path_name)
+    # 提取片段，计算平均音量
+    clips = extract_clips(video_path, clip_duration_in_seconds, interval_in_seconds)
 
-# 使用音量平均值来排序
-clips.sort(key=lambda x: x[3], reverse= True)
-print(clips)
+    # 使用音量平均值来排序
+    clips.sort(key=lambda x: x[3], reverse= True)
+
+    # 获取排名前20的片段
+    rankList.clear()
+    for i in range(20):
+        rankList.append(clips[i])
+    rankList.sort(key=lambda x: x[0], reverse= False)
+
+    # 拼接选出的片段
+    i2 = 0
+    for clipOne in rankList:
+        if i2 == 0:
+            clipFinal = clipOne[2]
+        if i2 > 0:
+            clipFinal = concatenate_videoclips([clipFinal,clipOne[2]])
+        i2 += 1
+
+    # 输出视频
+    clip_name = f"{output_prefix}.mp4"
+    clipFinal.write_videofile(clip_name, audio_codec='aac')
+
+
+
+
+
 
 '''
+
+rankTempList = []
+rankLeaveList = []
 # 重建排序队列
 for j in range(len(clips)):
     rankTempList.append([j])
@@ -106,21 +150,7 @@ if len(rankLeaveList) >= 5:
                 clip_name = f"{k+1}_{rankLeaveList[k]}_clip_{k2[1]}.mp4"
                 k2[2].write_videofile(clip_name, audio_codec='aac')'''
 
-for i in range(20):
-    rankList.append(clips[i])
-rankList.sort(key=lambda x: x[0], reverse= False)
 
-i2 = 0
-for clipOne in rankList:
-    if i2 == 0:
-        clipFinal = clipOne[2]
-    if i2 > 0:
-        clipFinal = concatenate_videoclips([clipFinal,clipOne[2]])
-    print(clipOne[0])
-    i2 += 1
-
-clip_name = f"finalClip.mp4"
-clipFinal.write_videofile(clip_name, audio_codec='aac')
 
 '''for k, clip in clips:
     clip_name = f"{clip[k]}_clip_{clip[1]}.mp4"
